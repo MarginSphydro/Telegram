@@ -87,7 +87,7 @@ jobs:
 
       - name: Upload debug APK to artifacts
         if: success()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: debug-apk
           path: |
@@ -97,7 +97,7 @@ jobs:
 
       - name: Upload release APK to artifacts
         if: success() && env.KEYSTORE_BASE64 != ''
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: release-apk
           path: TMessagesProj_App/build/outputs/apk/release/*.apk
