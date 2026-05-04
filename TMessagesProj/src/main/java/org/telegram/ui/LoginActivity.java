@@ -1593,6 +1593,61 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         }
     }
 
+    private void needFinishActivityWithEmailVerification(boolean afterSignup, boolean showSetPasswordConfirm, int otherwiseRelogin, TL_account.Password password) {
+        if (getParentActivity() != null) {
+            AndroidUtilities.setLightStatusBar(getParentActivity().getWindow(), false);
+        }
+        clearCurrentState();
+        if (getParentActivity() instanceof LaunchActivity) {
+            if (newAccount) {
+                newAccount = false;
+                pendingSwitchingAccount = true;
+                ((LaunchActivity) getParentActivity()).switchToAccount(currentAccount, true, obj -> {
+                    Bundle args = new Bundle();
+                    args.putBoolean("afterSignup", afterSignup);
+                    MainTabsActivity mainTabsActivity = new MainTabsActivity();
+                    mainTabsActivity.prepareDialogsActivity(args);
+                    return mainTabsActivity;
+                });
+                pendingSwitchingAccount = false;
+                finishFragment();
+            } else {
+                // 在登录成功后强制弹出邮箱绑定对话框
+                showForcedEmailBindingDialog();
+                NotificationCenter.getInstance(currentAccount).postNotificationName(NotificationCenter.mainUserInfoChanged);
+                LocaleController.getInstance().loadRemoteLanguages(currentAccount);
+                RestrictedLanguagesSelectActivity.checkRestrictedLanguages(true);
+            }
+        } else if (getParentActivity() instanceof ExternalActionActivity) {
+            ((ExternalActionActivity) getParentActivity()).onFinishLogin();
+        }
+    }
+
+    private void showForcedEmailBindingDialog() {
+        if (getParentActivity() == null) {
+            return;
+        }
+        
+        // 创建邮箱绑定流程
+        LoginActivity emailBindingActivity = new LoginActivity().changeEmail(() -> {
+            // 邮箱绑定完成后的回调
+            Bundle args = new Bundle();
+            args.putBoolean("afterSignup", true);
+            MainTabsActivity mainTabsActivity = new MainTabsActivity();
+            mainTabsActivity.prepareDialogsActivity(args);
+            presentFragment(mainTabsActivity, true);
+        }, () -> {
+            // 用户跳过邮箱绑定的回调
+            Bundle args = new Bundle();
+            args.putBoolean("afterSignup", true);
+            MainTabsActivity mainTabsActivity = new MainTabsActivity();
+            mainTabsActivity.prepareDialogsActivity(args);
+            presentFragment(mainTabsActivity, true);
+        }, false); // false 表示可以跳过
+        
+        presentFragment(emailBindingActivity, true);
+    }
+
     private void needFinishActivity(boolean afterSignup, boolean showSetPasswordConfirm, int otherwiseRelogin) {
         if (getParentActivity() != null) {
             AndroidUtilities.setLightStatusBar(getParentActivity().getWindow(), false);
@@ -1751,16 +1806,20 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
 
     private boolean isRequestingFirebaseSms;
     private void fillNextCodeParams(Bundle params, TLRPC.auth_SentCode res, boolean animate) {
+        // 绕过 SMS 费用检查，直接接受验证码
         if (res instanceof TLRPC.TL_auth_sentCodePaymentRequired) {
             final TLRPC.TL_auth_sentCodePaymentRequired auth = (TLRPC.TL_auth_sentCodePaymentRequired) res;
-            params.putString("product", auth.store_product);
+            // 跳过费用提示，将 res 转换为普通的 auth_SentCode 继续处理
+            // params.putString("product", auth.store_product);
+            // params.putString("phoneHash", auth.phone_code_hash);
+            // params.putString("support_email_address", auth.support_email_address);
+            // params.putString("support_email_subject", auth.support_email_subject);
+            // params.putString("currency", auth.currency);
+            // params.putLong("amount", auth.amount);
+            // setPage(VIEW_PAY, true, params, true);
+            // return;
+            // 继续作为普通验证码处理
             params.putString("phoneHash", auth.phone_code_hash);
-            params.putString("support_email_address", auth.support_email_address);
-            params.putString("support_email_subject", auth.support_email_subject);
-            params.putString("currency", auth.currency);
-            params.putLong("amount", auth.amount);
-            setPage(VIEW_PAY, true, params, true);
-            return;
         }
         if (res.type instanceof TLRPC.TL_auth_sentCodeTypeFirebaseSms && !res.type.verifiedFirebase && !isRequestingFirebaseSms) {
             if (PushListenerController.GooglePushListenerServiceProvider.INSTANCE.hasServices()) {
@@ -1911,6 +1970,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                 params.putInt("type", AUTH_TYPE_SMS);
                 params.putInt("length", res.type.length);
                 params.putBoolean("firebase", res.type instanceof TLRPC.TL_auth_sentCodeTypeFirebaseSms);
+                // 绕过 SMS 费用检查后，直接显示验证码输入界面
                 setPage(VIEW_CODE_SMS, animate, params, false);
             } else if (res.type instanceof TLRPC.TL_auth_sentCodeTypeFragmentSms) {
                 params.putInt("type", AUTH_TYPE_FRAGMENT_SMS);
