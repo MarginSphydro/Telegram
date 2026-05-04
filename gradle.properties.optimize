@@ -1,0 +1,49 @@
+# Gradle build optimization properties
+# 在项目根目录的 gradle.properties 中添加这些配置
+
+# === JVM 内存配置 ===
+# 为 Gradle 守护进程分配足够的内存
+org.gradle.jvmargs=-Xmx4096m -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=./heap-dumps
+
+# === 并行构建 ===
+# 启用并行构建，加速多模块项目
+org.gradle.parallel=true
+# 最大并行工作线程数（根据 CPU 核心数调整）
+org.gradle.workers.max=8
+
+# === 构建缓存 ===
+# 启用构建缓存，重复构建会更快
+org.gradle.build.cache=true
+org.gradle.build.cache.debug=false
+
+# === 守护进程 ===
+# 保持 Gradle 守护进程运行，加速后续构建
+org.gradle.daemon=true
+# 空闲 10 分钟后关闭守护进程
+org.gradle.daemon.idletimeout=600000
+
+# === 文件系统监视 ===
+# 禁用文件系统监视，减少 I/O 开销
+org.gradle.vfs.watch=false
+
+# === 增量编译 ===
+# 启用 Java 增量编译
+org.gradle.incubating.incremental=true
+
+# === 编译优化 ===
+# 启用编译器守护进程，加速 Java 编译
+android.enableBuildCache=true
+# 启用 D8 多线程脱糖处理
+android.useFullClasspathForDexingPlugin=false
+
+# === 资源处理 ===
+# 启用 WebP 转换以减少 APK 大小
+android.enableWebp=true
+# 禁用某些不必要的资源处理
+android.enableAapt2=true
+
+# === 编译配置 ===
+# 跳过 Lint 以加速调试构建
+android.lintOptions.checkReleaseBuilds=false
+# 启用模块化构建
+android.moduleMetadata.enabled=true

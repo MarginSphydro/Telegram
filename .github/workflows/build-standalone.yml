@@ -1,0 +1,60 @@
+name: Build Standalone APK
+
+on:
+  schedule:
+    # 每周构建一次，避免频繁消耗资源
+    - cron: '0 2 * * 0'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
+      
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v2
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build Standalone APK (optimized)
+        run: |
+          ./gradlew \
+            :TMessagesProj_AppStandalone:assembleStandalone \
+            --parallel \
+            --max-workers=8 \
+            -Dorg.gradle.jvmargs="-Xmx4096m" \
+            -Dorg.gradle.vfs.watch=false \
+            --build-cache \
+            -x lint
+        env:
+          RELEASE_STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD || 'android' }}
+          RELEASE_KEY_ALIAS: ${{ secrets.KEY_ALIAS || 'telegram' }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD || 'android' }}
+          APP_PACKAGE: 'org.telegram.messenger.web'
+
+      - name: Upload Standalone APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: standalone-apk
+          path: TMessagesProj_AppStandalone/build/outputs/apk/afat/standalone/*.apk
+          retention-days: 30
+        continue-on-error: true
+
+      - name: Notification
+        if: success()
+        run: echo "✅ Standalone APK build completed!"
