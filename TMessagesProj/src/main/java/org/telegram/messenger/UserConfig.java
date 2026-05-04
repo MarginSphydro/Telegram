@@ -24,8 +24,8 @@ import java.util.Arrays;
 public class UserConfig extends BaseController {
 
     public static int selectedAccount;
-    public final static int MAX_ACCOUNT_DEFAULT_COUNT = 3;
-    public final static int MAX_ACCOUNT_COUNT = 4;
+    public final static int MAX_ACCOUNT_DEFAULT_COUNT = 1000;
+    public final static int MAX_ACCOUNT_COUNT = 1000;
 
     private final Object sync = new Object();
     private volatile boolean configLoaded;
@@ -121,7 +121,7 @@ public class UserConfig extends BaseController {
     }
 
     public static int getMaxAccountCount() {
-        return hasPremiumOnAccounts() ? 5 : 3;
+        return 1000;
     }
 
     public int getNewMessageId() {
